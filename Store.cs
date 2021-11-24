@@ -1,4 +1,8 @@
-﻿public class Store {
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public class Store {
     public void Main() {
         Good iPhone12 = new Good("IPhone 12");
         Good iPhone11 = new Good("IPhone 11");
@@ -71,6 +75,21 @@ public class Warehouse {
 
         return hasGood && isValidCount;
     }
+
+    public void Ship(IEnumerable<(Good good, int count)> goods) {
+        foreach (var pair in goods) {
+            if (HasGoods(pair.good, pair.count)) {
+                var currentCount = _goods[pair.good];
+                var passedCount = currentCount - pair.count;
+                if (passedCount <= 0) {
+                    _goods.Remove(pair.good);
+                }
+                else {
+                    _goods[pair.good] = passedCount;
+                }
+            }
+        }
+    }
 }
 
 public class Shop {
@@ -94,6 +113,8 @@ public class Cart {
     private readonly Shop _shop;
     private readonly Dictionary<Good, int> _goods = new Dictionary<Good, int>();
 
+    private Order _order;
+
     public Cart(Shop shop) {
         if (shop == null) {
             throw new ArgumentNullException("Shop is NULL");
@@ -116,10 +137,19 @@ public class Cart {
         else {
             throw new ArgumentOutOfRangeException("Not enough goods in warehouse");
         }
+
+        if (_order != null) {
+            _order = null;
+        }
     }
 
     public Order Order() {
-        return new Order();
+        if (_order == null) {
+            _order = new Order();
+            _shop.Warehouse.Ship(Goods);
+            _goods.Clear();
+        }
+        return _order;
     }
 }
 
