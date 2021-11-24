@@ -76,7 +76,7 @@ public class Warehouse {
         return hasGood && isValidCount;
     }
 
-    public void Ship(IEnumerable<(Good good, int count)> goods) {
+    public void ShippingOut(IEnumerable<(Good good, int count)> goods) {
         foreach (var pair in goods) {
             if (HasGoods(pair.good, pair.count)) {
                 var currentCount = _goods[pair.good];
@@ -87,6 +87,9 @@ public class Warehouse {
                 else {
                     _goods[pair.good] = passedCount;
                 }
+            }
+            else {
+                throw new InvalidOperationException("Not enough goods in warehouse");
             }
         }
     }
@@ -146,7 +149,7 @@ public class Cart {
     public Order Order() {
         if (_order == null) {
             _order = new Order();
-            _shop.Warehouse.Ship(Goods);
+            _shop.Warehouse.ShippingOut(Goods);
             _goods.Clear();
         }
         return _order;
