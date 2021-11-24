@@ -1,30 +1,24 @@
-﻿public class Weapon {
-    private const int defaultClipSize = 10;
+﻿using System;
 
+public class Weapon {
     public int Damage { get; private set; }
     public int Bullets { get; private set; }
 
     public bool HasBulletsInClip => Bullets > 0;
 
-    public Weapon(int damage) {
+    public Weapon(int damage, int bullets) {
         Damage = damage;
-
-        //должно ли оружие быть заряженным после создания?
-        Bullets = defaultClipSize;
+        Bullets = bullets;
     }
 
     public void Fire(IDamageable damageable) {
-        damageable.TakeDamage(Damage);
-        Bullets -= 1;
-
-        //должно ли оружие перезаряжаться само?
-        if (HasBulletsInClip == false) {
-            Reload();
+        if (Bullets > 0) {
+            damageable.TakeDamage(Damage);
+            Bullets -= 1;
         }
-    }
-
-    public void Reload() {
-        Bullets = defaultClipSize;
+        else {
+            throw new InvalidOperationException("No bullets!");
+        }
     }
 }
 
@@ -47,7 +41,12 @@ public class Player : IDamageable {
 public class Bot {
     private Weapon _weapon;
 
+    public Bot(Weapon weapon) {
+        Weapon = weapon;
+    }
+
     public bool HasWeapon => Weapon != null;
+
     public Weapon Weapon {
         get => _weapon;
         set {
@@ -57,7 +56,6 @@ public class Bot {
             }
         }
     }
-
 
     public void OnSeePlayer(Player player) {
         if (HasWeapon && player.IsAlive) {
@@ -69,4 +67,3 @@ public class Bot {
 public interface IDamageable {
     void TakeDamage(int damage);
 }
-    }
