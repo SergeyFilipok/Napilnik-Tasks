@@ -53,16 +53,7 @@ public class Warehouse {
     public IEnumerable<(Good good, int count)> Goods => _goods.Select(pair => (pair.Key, pair.Value));
 
     public void Delive(Good good, int count) {
-        if (count <= 0 || good == null) {
-            throw new InvalidOperationException();
-        }
-
-        if (_goods.TryGetValue(good, out int currentCount)) {
-            _goods[good] = currentCount + count;
-        }
-        else {
-            _goods.Add(good, count);
-        }
+        _goods.AddCount((good, count), (pair) => true);
     }
 
     public bool HasGoods(Good good, int count) {
@@ -115,6 +106,7 @@ public class Shop {
 public class Cart {
     private readonly Shop _shop;
     private readonly Dictionary<Good, int> _goods = new Dictionary<Good, int>();
+    private readonly Predicate<(Good, int)> addCondition;
 
     private Order _order;
 
@@ -123,23 +115,13 @@ public class Cart {
             throw new ArgumentNullException("Shop is NULL");
         }
         _shop = shop;
+        addCondition = (pair) => _shop.Warehouse.HasGoods(pair.Item1, pair.Item2);
     }
 
     public IEnumerable<(Good good, int count)> Goods => _goods.Select(pair => (pair.Key, pair.Value));
 
     public void Add(Good good, int count) {
-        if (count <= 0 || good == null) {
-            throw new InvalidOperationException();
-        }
-
-        _goods.TryGetValue(good, out int currentCount);
-        var totalCount = currentCount + count;
-        if (_shop.Warehouse.HasGoods(good, totalCount)) {
-            _goods[good] = totalCount;
-        }
-        else {
-            throw new ArgumentOutOfRangeException("Not enough goods in warehouse");
-        }
+        _goods.AddCount((good, count), addCondition);
 
         if (_order != null) {
             _order = null;
@@ -157,11 +139,30 @@ public class Cart {
 }
 
 public class Order {
-    private string _paylink;
+    public readonly string Paylink;
 
-    private string GeneratePaylink() {
-        return System.Guid.NewGuid().ToString();
+    public Order() {
+        Paylink = GeneratePaylink();
     }
 
-    public string Paylink { get => _paylink ?? (_paylink = GeneratePaylink()); private set => _paylink = value; }
+    private string GeneratePaylink() {
+        return Guid.NewGuid().ToString();
+    }
+}
+
+public static class DictionatyExtension {
+    public static void AddCount<T>(this Dictionary<T, int> dictionary, (T item, int count) pair, Predicate<(T, int)> condition) where T : class {
+        if (pair.count <= 0 || pair.item == null) {
+            throw new InvalidOperationException();
+        }
+
+        dictionary.TryGetValue(pair.item, out int currentCount);
+        var totalCount = currentCount + pair.count;
+        if (condition((pair.item, totalCount))) {
+            dictionary[pair.item] = totalCount;
+        }
+        else {
+            throw new ArgumentOutOfRangeException("Conditon is false");
+        }
+    }
 }
